@@ -1,30 +1,34 @@
-import rumps
 import requests
 from bs4 import BeautifulSoup
+import rumps
 
-def fetch_live_score():
-    url = "https://www.cricbuzz.com/live-cricket-scores/89745/kkr-vs-dc-16th-match-indian-premier-league-2024"
+def get_live_scores():
+   
+    url = "https://www.cricbuzz.com/"
+
     response = requests.get(url)
-    soup = BeautifulSoup(response.content, "html.parser")
-    match_status = soup.find("div", class_="cb-col cb-col-100 cb-min-stts cb-text-complete").text.strip()
-    score_div = soup.find('div', class_='cb-col cb-col-100 cb-col-scores')
-    score_text = score_div.find('div', class_='cb-col cb-col-67 cb-scrs-wrp').text.strip() if score_div else "Score div not found on the page."
-    return match_status, score_text
+    soup = BeautifulSoup(response.text, 'html.parser')
+    score_elements = soup.find_all("div", class_="cb-ovr-flo")
 
-class LiveScoreApp(rumps.App):
+    team1 = score_elements[1].text.strip()  
+    score1 = score_elements[2].text.strip() 
+    team2 = score_elements[3].text.strip()  
+    score2 = score_elements[4].text.strip()  
+    match_status = score_elements[5].text.strip() 
+
+    return team1, score1, team2, score2, match_status
+
+class LiveCricketScoresApp(rumps.App):
     def __init__(self):
-        super(LiveScoreApp, self).__init__("")  # No title
-        self.menu = []
-        self.update_scores()
+        super(LiveCricketScoresApp, self).__init__("Live Cricket Scores")
+        self.menu = ["Refresh", rumps.separator]
+        self.refresh_scores()  
+        rumps.timer(30)(self.refresh_scores)  
 
-    def update_scores(self):
-        try:
-            match_status, score_text = fetch_live_score()
-            self.title = f"{match_status} - {score_text}"
-            self.menu.clear()
-        except Exception as e:
-            print("Error fetching scores:", e)
-            self.title = "Error fetching scores"
+    @rumps.clicked("Refresh")
+    def refresh_scores(self, _=None):
+        team1, score1, team2, score2, match_status = get_live_scores()
+        self.title = f"{team1}: {score1} vs {team2}: {score2} ({match_status})"
 
-if __name__ == "__main__":
-    LiveScoreApp().run()
+if __name__ == '__main__':
+    LiveCricketScoresApp().run()
